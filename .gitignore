@@ -1,6 +1,8 @@
 checkpoints/
 *.pth
 *.pyc
+*.bak
+*.swp
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
