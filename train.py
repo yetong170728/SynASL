@@ -84,7 +84,7 @@ def train_model(
             for batch in train_loader:
                 images, masks, labels = batch['image'], batch['mask'], batch['label']
                 # print(labels.shape)
-                # print(images.shape, masks.shape, labels.shape)
+                print(images.shape, masks.shape, labels.shape)
                 assert images.shape[1] == model.n_channels, \
                     f'Network has been defined with {model.n_channels} input channels, ' \
                     f'but loaded images have {images.shape[1]} channels. Please check that ' \
@@ -172,8 +172,8 @@ def get_args():
                         help='Percent of the data that is used as validation (0-100)')
     parser.add_argument('--amp', action='store_true', default=False, help='Use mixed precision')
     parser.add_argument('--bilinear', action='store_true', default=False, help='Use bilinear upsampling')
-    parser.add_argument('--classes', '-c', type=int, default=128, help='Number of classes')
-
+    parser.add_argument('--classes', '-c', type=int, default=40, help='Number of classes')
+    parser.add_argument('--device', type=str, default='cpu', help="Devices in use")
     return parser.parse_args()
 
 
@@ -181,7 +181,8 @@ if __name__ == '__main__':
     args = get_args()
 
     logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    # device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    device = torch.device(args.device)
     logging.info(f'Using device {device}')
 
     # Change here to adapt to your data

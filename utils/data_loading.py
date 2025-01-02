@@ -23,8 +23,6 @@ print(pythonpath)
 from Data_prep.data_prep2_calc_label import calc_log_HI
 
 def load_nifti(nii_fp, get_spacing=False):
-    # img = np.random.randn(128, 96, 96)
-    # print(img.shape)
     img = nib.load(nii_fp)
     img_array = img.get_fdata()
     spacing = img.header['pixdim'][1:4]
@@ -55,23 +53,23 @@ class BasicDataset(Dataset):
         if zaxis_first:
             self.images = np.transpose(self.images, axes=(0,3,2,1))
             self.masks = np.transpose(self.masks, axes=(0,3,2,1))
-        print(self.images.shape)
+        print(self.images.shape, self.labels.shape, self.masks.shape)
 
     def _load_data_all(self):
         self.images = np.asarray([load_nifti(f) for f in self.images_fp])
         self.masks = np.asarray([load_nifti(f) for f in self.masks_fp])
         spacings = [load_nifti(f,get_spacing=True) for f in self.images_fp]
-        self.labels = [calc_log_HI(image, mask, spacing=spacing) for image,mask,spacing in zip(self.images, self.masks, spacings)]
-        
+        self.labels = np.asarray([calc_log_HI(image, mask, spacing=spacing)>4.5 for image,mask,spacing in zip(self.images, self.masks, spacings)])
+        print(self.labels)
     def __len__(self):
         return len(self.ids)
 
 
     def __getitem__(self, idx):
         # define func `load_image()`
-        img = self.images(idx)
-        mask = self.masks(idx)
-        label = self.labels(idx)
+        img = self.images[idx]
+        mask = self.masks[idx]
+        label = self.labels[idx]
 
         assert img.size == mask.size, \
             f'Image and mask {name} should be the same size, but are {img.size} and {mask.size}'
