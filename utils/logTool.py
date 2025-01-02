@@ -7,7 +7,7 @@ from datetime import datetime
 class logTool(Logger):
     def __init__(self, name=None, 
                  slevel=INFO, flevel=None,
-    fformat=Formatter("Time：%(asctime)s - Message(Level:%(levelname)s)[%(funcName)s]-Line:%(lineno)d: %(message)s "),
+    fformat=Formatter("Time: %(asctime)s - Message(Level:%(levelname)s)[%(funcName)s]-Line:%(lineno)d: %(message)s "),
                  sformat=None,
                  use_terminal=True,
                  use_file=True, log_path=Path.cwd()):

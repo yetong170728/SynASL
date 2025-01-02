@@ -42,7 +42,7 @@ class BasicDataset(Dataset):
 
 
     def __getitem__(self, idx):
-
+        # define func `load_image()`
         img = load_image(idx)
         mask = load_image(idx)
         label = load_label(idx)
