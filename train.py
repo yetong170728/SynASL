@@ -41,7 +41,9 @@ def train_model(
     # 2. Split into train / validation partitions
     n_val = int(len(dataset) * val_percent)
     n_train = len(dataset) - n_val
-    train_set, val_set = random_split(dataset, [n_train, n_val], generator=torch.Generator().manual_seed(0))
+    train_set, val_set = random_split(dataset, [n_train, n_val], generator=torch.Generator().manual_seed(3407))
+    print(len(val_set))
+    val_set = train_set
 
     # 3. Create data loaders
     loader_args = dict(batch_size=batch_size, num_workers=os.cpu_count(), pin_memory=True)
@@ -70,12 +72,14 @@ def train_model(
     # 4. Set up the optimizer, the loss, the learning rate scheduler and the loss scaling for AMP
     optimizer = optim.RMSprop(model.parameters(),
                               lr=learning_rate, weight_decay=weight_decay, momentum=momentum, foreach=True)
+    # optimizer = optim.Adam(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'max', patience=5)  # goal: maximize Dice score
     grad_scaler = torch.cuda.amp.GradScaler(enabled=amp)
     criterion_label = nn.CrossEntropyLoss()
     criterion = nn.MSELoss(reduction="mean")
     global_step = 0
 
+    val_accuracy_saved = 999999.0
     # 5. Begin training
     for epoch in range(1, epochs + 1):
         model.train()
@@ -84,7 +88,8 @@ def train_model(
             for batch in train_loader:
                 images, masks, labels = batch['image'], batch['mask'], batch['label']
                 # print(labels.shape)
-                print(images.shape, masks.shape, labels.shape)
+                # print(images.shape, masks.shape, labels.shape)
+                # print("labels",labels)
                 assert images.shape[1] == model.n_channels, \
                     f'Network has been defined with {model.n_channels} input channels, ' \
                     f'but loaded images have {images.shape[1]} channels. Please check that ' \
@@ -98,7 +103,9 @@ def train_model(
                     masks_pred, labels_pred = model(images)
                     loss_m = criterion(masks_pred, masks.float())
                     loss_l = criterion_label(labels_pred, labels)
-                    loss = loss_m + loss_l
+                    # print("loss m", loss_m)
+                    # print("loss l", loss_l)
+                    loss = loss_m + loss_l * 10
 
 
                 optimizer.zero_grad(set_to_none=True)
@@ -119,7 +126,7 @@ def train_model(
                 pbar.set_postfix(**{'loss (batch)': loss.item()})
 
                 # Evaluation round
-                division_step = (n_train // (5 * batch_size))
+                division_step = (n_train // batch_size)
                 if division_step > 0:
                     if global_step % division_step == 0:
                         # histograms = {}
@@ -132,7 +139,7 @@ def train_model(
 
                         val_score, val_accuracy = evaluate(model, val_loader, device, amp)
                         # TODO
-                        scheduler.step(val_score)
+                        scheduler.step(val_score + 10*val_accuracy)
 
                         logging.info('Validation Rmse score: {}'.format(val_score))
                         logging.info('Validation Accuracy score: {}'.format(val_accuracy))
@@ -152,19 +159,20 @@ def train_model(
                         # except:
                         #     pass
 
-        if save_checkpoint:
-            Path(dir_checkpoint).mkdir(parents=True, exist_ok=True)
-            state_dict = model.state_dict()
-            # state_dict['mask_values'] = dataset.mask_values
-            torch.save(state_dict, str(dir_checkpoint / 'checkpoint_epoch{}.pth'.format(epoch)))
-            logging.info(f'Checkpoint {epoch} saved!')
+                        if save_checkpoint:
+                            if float(val_score) < val_accuracy_saved:
+                                Path(dir_checkpoint).mkdir(parents=True, exist_ok=True)
+                                state_dict = model.state_dict()
+                                # state_dict['mask_values'] = dataset.mask_values
+                                torch.save(state_dict, str(dir_checkpoint / 'checkpoint_best_val_score.pth'.format(epoch)))
+                                logging.info(f'Checkpoint {epoch} saved!')
 
 
 def get_args():
     parser = argparse.ArgumentParser(description='Train the UNet on images and target masks')
-    parser.add_argument('--epochs', '-e', metavar='E', type=int, default=5, help='Number of epochs')
+    parser.add_argument('--epochs', '-e', metavar='E', type=int, default=500, help='Number of epochs')
     parser.add_argument('--batch-size', '-b', dest='batch_size', metavar='B', type=int, default=1, help='Batch size')
-    parser.add_argument('--learning-rate', '-l', metavar='LR', type=float, default=1e-5,
+    parser.add_argument('--learning-rate', '-l', metavar='LR', type=float, default=1e-4,
                         help='Learning rate', dest='lr')
     parser.add_argument('--load', '-f', type=str, default=False, help='Load model from a .pth file')
     parser.add_argument('--scale', '-s', type=float, default=0.5, help='Downscaling factor of the images')
@@ -173,7 +181,7 @@ def get_args():
     parser.add_argument('--amp', action='store_true', default=False, help='Use mixed precision')
     parser.add_argument('--bilinear', action='store_true', default=False, help='Use bilinear upsampling')
     parser.add_argument('--classes', '-c', type=int, default=40, help='Number of classes')
-    parser.add_argument('--device', type=str, default='cpu', help="Devices in use")
+    parser.add_argument('--device', type=str, default='cuda', help="Devices in use")
     return parser.parse_args()
 
 

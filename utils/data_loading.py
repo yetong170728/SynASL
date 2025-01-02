@@ -18,7 +18,6 @@ import nibabel as nib
 import os,sys
 pythonpath = os.path.abspath(os.path.dirname(os.path.dirname(__file__)))
 sys.path.insert(0, pythonpath)
-print(pythonpath)
 
 from Data_prep.data_prep2_calc_label import calc_log_HI
 
@@ -60,7 +59,7 @@ class BasicDataset(Dataset):
         self.masks = np.asarray([load_nifti(f) for f in self.masks_fp])
         spacings = [load_nifti(f,get_spacing=True) for f in self.images_fp]
         self.labels = np.asarray([calc_log_HI(image, mask, spacing=spacing)>4.5 for image,mask,spacing in zip(self.images, self.masks, spacings)])
-        print(self.labels)
+
     def __len__(self):
         return len(self.ids)
 
@@ -72,7 +71,7 @@ class BasicDataset(Dataset):
         label = self.labels[idx]
 
         assert img.size == mask.size, \
-            f'Image and mask {name} should be the same size, but are {img.size} and {mask.size}'
+            f'Image and mask should be the same size, but are {img.size} and {mask.size}'
 
         return {
             'image': torch.as_tensor(img.copy()).float().contiguous(),
@@ -82,4 +81,10 @@ class BasicDataset(Dataset):
 
 if __name__ == "__main__":
     test1 = BasicDataset(data_dir='/root/onethingai-tmp/mtunet_dataset')
+    res = test1[1]
+    image1 = (res['image']>0).int()
+    mask1 = (res['mask']>0).int()
     
+    print("non-zero counts for image: ", image1[:].sum())
+    print("non-zero counts for mask: ", mask1[:].sum())
+    print("label: ", res['label'])

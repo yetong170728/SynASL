@@ -21,9 +21,10 @@ def evaluate(net, dataloader, device, amp):
             image = image.to(device=device, dtype=torch.float32, memory_format=torch.channels_last)
             mask = mask.to(device=device, dtype=torch.float32)
             label = label.to(device=device, dtype=torch.long)
-
+            # print("evaluate image", mask.shape)
             # predict the mask
             mask_pred, label_pred = net(image)
+            # print("pred label", label_pred)
 
             # compute rmse score
             rmse_score += rmse_coeff(mask_pred, mask)

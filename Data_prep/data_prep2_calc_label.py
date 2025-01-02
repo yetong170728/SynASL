@@ -1,5 +1,4 @@
 from pathlib import Path
-import ants
 import numpy as np
 import nibabel as nib
 import matplotlib.pyplot as plt
@@ -88,10 +87,14 @@ if __name__ == "__main__":
         for pdir in pdir_list:
             cbf_before_fp = pdir.joinpath("cbf_before.nii.gz")
             cbf_after_fp = pdir.joinpath("cbf_after.nii.gz")
-            cbf_before = ants.image_read(str(cbf_before_fp))
-            cbf_after = ants.image_read(str(cbf_after_fp))
-            cbf_before_array = cbf_before.numpy()
-            cbf_after_array = cbf_after.numpy()
+            # cbf_before = ants.image_read(str(cbf_before_fp))
+            # cbf_after = ants.image_read(str(cbf_after_fp))
+            # cbf_before_array = cbf_before.numpy()
+            # cbf_after_array = cbf_after.numpy()
+            cbf_before = nib.load(str(cbf_before_fp))
+            cbf_after = nib.load(str(cbf_after_fp))
+            cbf_before_array = cbf_before.get_fdata()
+            cbf_after_array = cbf_after.get_fdata()
             # cbf_ratio = cbf_after_array / cbf_before_array
             # cbf_ratio = np.where(cbf_before_array == 0, 0,np.divide(cbf_after_array, cbf_before_array))
             # cbf_ratio[np.isnan(cbf_ratio)] = 0.
@@ -100,7 +103,7 @@ if __name__ == "__main__":
             # length_z = cbf_ratio.shape[-1]
             # vmin = np.percentile(cbf_ratio[cbf_ratio>0], 10)
             # vmax = np.percentile(cbf_ratio[cbf_ratio>0], 99)
-            log_HI = calc_log_HI(cbf_before_array, cbf_after_array, spacing=(cbf_before.spacing))
+            log_HI = calc_log_HI(cbf_before_array, cbf_after_array, spacing=(cbf_before.header['pixdim'][1:4]))
             print(pdir.name, log_HI)
     else: # as command line use
         print(f'''
@@ -114,9 +117,9 @@ if __name__ == "__main__":
         ''')
         cbf_before_fp = args.cbf_before
         cbf_after_fp = args.cbf_after
-        cbf_before = ants.image_read(cbf_before_fp)
-        cbf_after = ants.image_read(cbf_after_fp)
-        cbf_before_array = cbf_before.numpy()
-        cbf_after_array = cbf_after.numpy()
+        cbf_before = nib.load(str(cbf_before_fp))
+        cbf_after = nib.load(str(cbf_after_fp))
+        cbf_before_array = cbf_before.get_fdata()
+        cbf_after_array = cbf_after.get_fdata()
         log_HI = calc_log_HI(cbf_before_array, cbf_after_array, spacing=args.spacing, thresh_cbf_ratio=args.thresh_ratio, thresh_vol=args.thresh_volume,)
         print(f"Log(10) Hyperperfusion Index: {log_HI:4.3f}")
