@@ -25,21 +25,26 @@ class logTool(Logger):
             flevel = slevel
         if use_file:
             self._setUpFhandler(log_path.joinpath(log_name), fformat, flevel)
+            self.log_name = None
         if use_terminal:
             self._setUpShandler(sformat,slevel)
-        self.log_name = log_name
+            self.log_name = log_name
     
     def _setUpFhandler(self, file_name,format,level):
         fhandler = FileHandler(file_name)
         fhandler.setFormatter(format)
         fhandler.setLevel(level)
         self.addHandler(fhandler)
+        fhandler.close()
         
     def _setUpShandler(self, format,level):
         shandler = StreamHandler()
         shandler.setFormatter(format)
         shandler.setLevel(level)
         self.addHandler(shandler)
+        shandler.close()
 
 if __name__ == "__main__":
-    logTool().info("test loggin info")
+    print(__name__)
+    logTool(name="log1", use_file=False).info("test loggin info")
+    
