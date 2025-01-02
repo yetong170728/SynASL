@@ -18,10 +18,8 @@ from evaluate import evaluate
 from unet import UNet, MT_UNet
 from utils.data_loading import BasicDataset
 
-dir_img = Path('./data/imgs/')
-dir_mask = Path('./data/masks/')
+dir_img = Path('/root/onethingai-tmp/mtunet_dataset')
 dir_checkpoint = Path('./checkpoints/')
-
 
 def train_model(
         model,
@@ -38,7 +36,7 @@ def train_model(
         gradient_clipping: float = 1.0,
 ):
     # 1. Create dataset
-    dataset = BasicDataset(dir_img, dir_mask, img_scale)
+    dataset = BasicDataset(data_dir=dir_img)
 
     # 2. Split into train / validation partitions
     n_val = int(len(dataset) * val_percent)
@@ -189,7 +187,7 @@ if __name__ == '__main__':
     # Change here to adapt to your data
     # n_channels=3 for RGB images
     # n_classes is the number of probabilities you want to get per pixel
-    model = MT_UNet(n_channels=128, n_classes=args.classes, bilinear=args.bilinear)
+    model = MT_UNet(n_channels=40, n_classes=args.classes, bilinear=args.bilinear)
     # model = model.to(memory_format=torch.channels_last)
 
     logging.info(f'Network:\n'

@@ -35,7 +35,7 @@ def load_nifti(nii_fp, get_spacing=False):
 
 
 class BasicDataset(Dataset):
-    def __init__(self, data_dir: str, scale=1.0):
+    def __init__(self, data_dir: str, scale=1.0,  zaxis_first=True):
         if type(data_dir) is str:
             data_dir = Path(data_dir)
         pdir_list = natsorted([f for f in data_dir.iterdir() if f.is_dir()])    
@@ -52,12 +52,16 @@ class BasicDataset(Dataset):
         logging.info(f'Creating dataset with {len(self.ids)} examples')
         self._load_data_all()
 
+        if zaxis_first:
+            self.images = np.transpose(self.images, axes=(0,3,2,1))
+            self.masks = np.transpose(self.masks, axes=(0,3,2,1))
+        print(self.images.shape)
+
     def _load_data_all(self):
-        self.image = np.asarray([load_nifti(f) for f in self.images_fp])
-        self.mask = np.asarray([load_nifti(f) for f in self.masks_fp])
+        self.images = np.asarray([load_nifti(f) for f in self.images_fp])
+        self.masks = np.asarray([load_nifti(f) for f in self.masks_fp])
         spacings = [load_nifti(f,get_spacing=True) for f in self.images_fp]
-        print(self.image.shape)
-        self.label = [calc_log_HI(image, mask, spacing=spacing) for image,mask,spacing in zip(self.image, self.mask, spacings)]
+        self.labels = [calc_log_HI(image, mask, spacing=spacing) for image,mask,spacing in zip(self.images, self.masks, spacings)]
         
     def __len__(self):
         return len(self.ids)
@@ -65,9 +69,9 @@ class BasicDataset(Dataset):
 
     def __getitem__(self, idx):
         # define func `load_image()`
-        img = self.image(idx)
-        mask = self.mask(idx)
-        label = self.label(idx)
+        img = self.images(idx)
+        mask = self.masks(idx)
+        label = self.labels(idx)
 
         assert img.size == mask.size, \
             f'Image and mask {name} should be the same size, but are {img.size} and {mask.size}'
